@@ -5,11 +5,10 @@ Algorithmically follows along the GPT tokenizer:
 https://github.com/openai/gpt-2/blob/master/src/encoder.py
 
 But:
-- Does not handle the regular expression splitting pattern.
 - Does not handle any special tokens.
 """
 
-from tokenizer.TokenizerBase import Tokenizer, get_stats, merge
+from tokenizer.TokenizerBase import TokenizerBase, get_stats, merge
 from multiprocessing import Pool, cpu_count
 from itertools import repeat
 from collections import Counter
@@ -22,7 +21,7 @@ GPT4_SPLIT_PATTERN = r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1
 def merge_string_key(key, pair, idx) -> tuple[str,str]:
     return (key, str(merge(json.loads(key), pair, idx)))
 
-class BasicTokenizer(Tokenizer):
+class Tokenizer(TokenizerBase):
 
     def __init__(self):
         super().__init__()

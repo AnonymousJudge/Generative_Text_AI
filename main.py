@@ -1,8 +1,8 @@
 
-from data.miner.WikipediaMiner import WikipediaMiner
-from data.miner.PubMedMiner import PubMedMiner
-from data.miner.ArXivMiner import ArXivMiner
-from tokenizer.Tokenizer import BasicTokenizer
+from helper.miner.WikipediaMiner import WikipediaMiner
+from helper.miner.PubMedMiner import PubMedMiner
+from helper.miner.ArXivMiner import ArXivMiner
+from tokenizer.Tokenizer import Tokenizer
 from Embedder import Embedder
 import sys
 from multiprocessing import Process, Manager, Pool
@@ -83,7 +83,7 @@ def train_tokenizer(a: int):
     text = get_text_data(a)
     print("finished data preperation")
     print("started training tokenizer")
-    tokenizer = BasicTokenizer()
+    tokenizer = Tokenizer()
     tokenizer.train(text, different_tokens, True)
     print("finished training tokenizer")
     tokenizer.save(tokenizer_data_path)
@@ -92,7 +92,7 @@ def train_tokenizer(a: int):
 def train_embedder_neural_network(epochs:int, text_size:int, min:int, max:int, displayUpdate:int):
     print("started data preperation")
     embedder = Embedder(different_tokens)
-    tokenizer = BasicTokenizer()
+    tokenizer = Tokenizer()
     tokenizer.load(tokenizer_data_path + ".model")
     tests = get_text_data(text_size)
     print("started encoding text_data")

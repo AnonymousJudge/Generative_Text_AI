@@ -86,10 +86,21 @@ class Embedder:
         for index in x:
             X[index] = 1
         pred = self.neural_network.predict(X)
-        return pred # type: ignore
+        return pred.tolist() # type: ignore
 
 
-    def get_verctor(self):
-        #TODO 
-        pass
+    def get_verctor(self, x: list[int], v_layer = 1) -> list[float]:
+        """
+        Converts a list of indices to a one-hot encoded vector and then passes it 
+        through the neural network layers.
+        
+        :param x: List of indices representing active features.
+        :param v_layer: Number of layers to pass trouh (default is 1).
+        :return: A list of float values representing the output vector after neural network processing.
+        """
+        X = [0] * self.input_token
+        for index in x:
+            X[index] = 1
+        vector = self.neural_network.input_to_vector(X=X, v_layer=v_layer)
+        return vector.tolist() # type: ignore
         

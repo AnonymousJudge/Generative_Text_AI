@@ -1,6 +1,7 @@
 
 import numpy
 from helper.JsonWriter import write_list_to_JSON, load_list_from_JSON
+from structures.Errors import Layer_out_of_bounds
 
 class NeuralNetwork:
 	
@@ -48,9 +49,13 @@ class NeuralNetwork:
 	def export_weights(self):
 		write_list_to_JSON(self.W, self.w_path)
 
-	def sigmoid(self, x):
-		# compute and return the sigmoid activation value for a
-		# given input value
+	def sigmoid(self, x: numpy.ndarray) -> numpy.ndarray:
+		"""
+        Compute and return the sigmoid activation value for a given input array or value.
+        
+        :param x: Input value or array (numpy.ndarray).
+        :return: Sigmoid activation value (numpy.ndarray or float).
+        """
 		return 1.0 / (1 + numpy.exp(-x))
 	
 	def sigmoid_deriv(self, x):
@@ -184,4 +189,19 @@ class NeuralNetwork:
 		# return the loss
 		return loss
 	
-	#TODO: output hidden layer as vector
+	def input_to_vector(self, X:list[int], v_layer:int, addBias= True) -> numpy.ndarray:
+		
+		if v_layer > len(self.W):
+			raise Layer_out_of_bounds()
+		
+		vector = numpy.atleast_2d(X)
+		# check to see if the bias column should be added
+		if addBias:
+			# insert a column of 1's as the last entry in the feature
+			# matrix (bias)
+			vector = numpy.c_[vector, numpy.ones((vector.shape[0]))]
+		
+		for layer in numpy.arange(0, v_layer):
+			vector = self.sigmoid(numpy.dot(vector, self.W[layer]))
+		
+		return vector

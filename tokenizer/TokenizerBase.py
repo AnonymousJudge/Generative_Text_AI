@@ -63,7 +63,7 @@ def render_token(t: bytes) -> str:
 # -----------------------------------------------------------------------------
 # the base Tokenizer class
 
-class Tokenizer:
+class TokenizerBase:
     """Base class for Tokenizers"""
 
     def __init__(self):
