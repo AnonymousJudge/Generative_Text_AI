@@ -50,11 +50,11 @@ class Tokenizer(TokenizerBase):
             # count up the number of times every consecutive pair appears
             if verbose:
                 print("\t\tcounting")
-            stats:dict[tuple[int,int], int] = {}
+            stats: Counter[tuple[int, int]] = Counter()
             with Pool(processes=cpu_count()-1) as pool:
                 stats_list = pool.starmap(get_stats, map(lambda x : (json.loads(x), ids_segments[x], None), ids_segments.keys()))
             for stat in stats_list:
-                stats = Counter(stats) + Counter(stat)
+                stats.update(stat)
             # find the pair with the highest count
             pair:tuple[int,int] = max(stats, key=stats.get) # type: ignore
             # mint a new token: assign it the next available id
