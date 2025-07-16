@@ -48,8 +48,6 @@ class Tokenizer(TokenizerBase):
             if len(ids_segments) < 1:
                 continue
             # count up the number of times every consecutive pair appears
-            if verbose:
-                print("\t\tcounting")
             stats: Counter[tuple[int, int]] = Counter()
             with Pool(processes=cpu_count()-1) as pool:
                 stats_list = pool.starmap(get_stats, map(lambda x : (json.loads(x), ids_segments[x], None), ids_segments.keys()))
@@ -60,8 +58,6 @@ class Tokenizer(TokenizerBase):
             # mint a new token: assign it the next available id
             idx = 256 + i
             # replace all occurrences of pair in ids with idx
-            if verbose:
-                print("\t\treplacing")
             with Pool(processes=cpu_count()-1) as pool:
                 merged_keys = pool.starmap(merge_string_key, zip(ids_segments.keys(), repeat(pair), repeat(idx)))
             # clean segements of len < 2

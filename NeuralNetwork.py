@@ -1,13 +1,14 @@
-
-import numpy
+import jax.numpy as jnp
+import jax.random as random
 from helper.JsonWriter import write_list_to_JSON, load_list_from_JSON
 from structures.Errors import Layer_out_of_bounds
 
 class NeuralNetwork:
 	
-	def __init__(self, path, layers, alpha=0.003):
+	def __init__(self, path, layers, alpha=0.1, seed=0):
 		# initialize the list of weights matrices, then store the
 		# network architecture and learning rate
+		self.key = random.PRNGKey(seed)
 		self.W = []
 		self.layers = layers
 		self.alpha = alpha
@@ -29,34 +30,36 @@ class NeuralNetwork:
 	def gen_weights(self):
 		# start looping from the index of the first layer but
 		# stop before we reach the last two layers
-		for i in numpy.arange(0, len(self.layers) - 2):
+		for i in jnp.arange(0, len(self.layers) - 2):
+			self.key, subkey = random.split(self.key)
 			# randomly initialize a weight matrix connecting the
 			# number of nodes in each respective layer together,
 			# adding an extra node for the bias
-			w = numpy.random.randn(self.layers[i] + 1, self.layers[i + 1] + 1)
-			self.W.append(w / numpy.sqrt(self.layers[i]))
+			w = random.normal(subkey, (self.layers[i] + 1, self.layers[i + 1] + 1))
+			self.W.append(w / jnp.sqrt(self.layers[i]))
 			
 		# the last two layers are a special case where the input
 		# connections need a bias term but the output does not
-		w = numpy.random.randn(self.layers[-2] + 1, self.layers[-1])
-		self.W.append(w / numpy.sqrt(self.layers[-2]))
+		self.key, subkey = random.split(self.key)
+		w = random.normal(subkey, (self.layers[-2] + 1, self.layers[-1]))
+		self.W.append(w / jnp.sqrt(self.layers[-2]))
 
 	def import_weights(self):
 		data = load_list_from_JSON(self.w_path)
 		for d in data:
-			self.W.append(numpy.array([numpy.array(li) for li in d]))
+			self.W.append(jnp.array([jnp.array(li) for li in d]))
 
 	def export_weights(self):
 		write_list_to_JSON(self.W, self.w_path)
 
-	def sigmoid(self, x: numpy.ndarray) -> numpy.ndarray:
+	def sigmoid(self, x):
 		"""
         Compute and return the sigmoid activation value for a given input array or value.
         
         :param x: Input value or array (numpy.ndarray).
         :return: Sigmoid activation value (numpy.ndarray or float).
         """
-		return 1.0 / (1 + numpy.exp(-x))
+		return 1.0 / (1.0 + jnp.exp(-x))
 	
 	def sigmoid_deriv(self, x):
 		# compute the derivative of the sigmoid function ASSUMING
@@ -64,18 +67,19 @@ class NeuralNetwork:
 		# function
 		return x * (1 - x)
 	
-	def fit(self, X:numpy.ndarray, y:numpy.ndarray, epochs=1000, displayUpdate=100):
+	def fit(self, X, y, epochs=1000, displayUpdate=100):
 		"""
 		Parameters:
 			X: training data
 			y: correspondin class labels
 		"""
+		print(len(X))
 		# insert a column of 1's as the last entry in the feature
 		# matrix -- this little trick allows us to treat the bias
 		# as a trainable parameter within the weight matrix
-		X = numpy.c_[X, numpy.ones((X.shape[0]))]
+		X = jnp.c_[X, jnp.ones((X.shape[0]))]
 		# loop over the desired number of epochs
-		for epoch in numpy.arange(0, epochs):
+		for epoch in jnp.arange(0, epochs):
 			# loop over each individual data point and train
 			# our network on it
 			for (x, target) in zip(X, y):
@@ -98,11 +102,11 @@ class NeuralNetwork:
 		# as our data point flows through the network; the first
 		# activation is a special case -- it's just the input
 		# feature vector itself
-		A = [numpy.atleast_2d(x)]
+		A = [jnp.atleast_2d(x)]
 
 		# FEEDFORWARD:
 		# loop over the layers in the network
-		for layer in numpy.arange(0, len(self.W)):
+		for layer in jnp.arange(0, len(self.W)):
 			# feedforward the activation at the current layer by
 			# taking the dot product between the activation and
 			# the weight matrix -- this is called the "net input"
@@ -131,7 +135,7 @@ class NeuralNetwork:
 		# to implement with a 'for' loop -- simply loop over the
 		# layers in reverse order (ignoring the last two since we
 		# already have taken them into account)
-		for layer in numpy.arange(len(A) - 2, 0, -1):
+		for layer in jnp.arange(len(A) - 2, 0, -1):
 			# the delta for the current layer is equal to the delta
 			# of the *previous layer* dotted with the weight matrix
 			# of the current layer, followed by multiplying the delta
@@ -146,7 +150,7 @@ class NeuralNetwork:
 		D = D[::-1]
 		# WEIGHT UPDATE PHASE
 		# loop over the layers
-		for layer in numpy.arange(0, len(self.W)):
+		for layer in jnp.arange(0, len(self.W)):
 			# update our weights by taking the dot product of the layer
 			# activations with their respective deltas, then multiplying
 			# this value by some small learning rate and adding to our
@@ -163,45 +167,45 @@ class NeuralNetwork:
 		# initialize the output prediction as the input features -- this
 		# value will be (forward) propagated through the network to
 		# obtain the final prediction
-		p = numpy.atleast_2d(X)
+		p = jnp.atleast_2d(X)
 		# check to see if the bias column should be added
 		if addBias:
 			# insert a column of 1's as the last entry in the feature
 			# matrix (bias)
-			p = numpy.c_[p, numpy.ones((p.shape[0]))]
+			p = jnp.c_[p, jnp.ones((p.shape[0]))]
 		# loop over our layers in the network
-		for layer in numpy.arange(0, len(self.W)):
+		for layer in jnp.arange(0, len(self.W)):
 			# computing the output prediction is as simple as taking
 			# the dot product between the current activation value 'p'
 			# and the weight matrix associated with the current layer,
 			# then passing this value through a nonlinear activation
-			# function
-			p = self.sigmoid(numpy.dot(p, self.W[layer]))
+			# function 
+			p = self.sigmoid(jnp.dot(p, self.W[layer]))
 		# return the predicted value
 		return p
 	
 	def calculate_loss(self, X, targets):
 		# make predictions for the input data points then compute
 		# the loss
-		targets = numpy.atleast_2d(targets)
+		targets = jnp.atleast_2d(targets)
 		predictions = self.predict(X, addBias=False)
-		loss = 0.5 * numpy.sum((predictions - targets) ** 2)
+		loss = 0.5 * jnp.sum((predictions - targets) ** 2)
 		# return the loss
 		return loss
 	
-	def input_to_vector(self, X:list[int], v_layer:int, addBias= True) -> numpy.ndarray:
+	def input_to_vector(self, X:list[int], v_layer:int, addBias= True):
 		
 		if v_layer > len(self.W):
 			raise Layer_out_of_bounds()
 		
-		vector = numpy.atleast_2d(X)
+		vector = jnp.atleast_2d(X) # type: ignore
 		# check to see if the bias column should be added
 		if addBias:
 			# insert a column of 1's as the last entry in the feature
 			# matrix (bias)
-			vector = numpy.c_[vector, numpy.ones((vector.shape[0]))]
+			vector = jnp.c_[vector, jnp.ones((vector.shape[0]))]
 		
-		for layer in numpy.arange(0, v_layer):
-			vector = self.sigmoid(numpy.dot(vector, self.W[layer]))
+		for layer in jnp.arange(0, v_layer):
+			vector = self.sigmoid(jnp.dot(vector, self.W[layer]))
 		
 		return vector

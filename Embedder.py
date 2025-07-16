@@ -6,18 +6,17 @@
 # hidden layer m nodes where n is the vector length
 # output layer n nodes where n is the lengt of the encoding (gives the porbablitiy of the word to follow up next)  
 
-from NeuralNetwork import NeuralNetwork
+from NeuralNetworkJAX import NeuralNetworkJAX
 import numpy
 
 class Embedder: 
 
-    neural_network: NeuralNetwork
+    neural_network: NeuralNetworkJAX
     input_token: int
 
-    def __init__(self, input_token: int, nn_weigths_path:str = "./data/embedder/weigths.json"):
+    def __init__(self, input_token: int, alpha:float = 0.1, nn_weigths_path:str = "./data/embedder/jaxNN/weights.json"):
         self.input_token = input_token
-        self.neural_network = NeuralNetwork(path = nn_weigths_path, layers = [input_token, 300, input_token])
-        print(self.neural_network)
+        self.neural_network = NeuralNetworkJAX(path = nn_weigths_path, layers = [input_token, 300, input_token], alpha = alpha)
 
 
     def get_successor_dict(self, encoded_token:list[int], min_combinations:int, max_combinations: int = 3, s_dict = {}) -> dict[str, dict[str, dict[str, int]]]:
@@ -61,46 +60,54 @@ class Embedder:
                 try:
                     # gen input
                     keys = list(map(int, key.split(", ")))
-                    x = [0] * self.input_token 
-                    for k in keys:
-                        x[k] = x[k] + 1
+                    x = [0.0] * self.input_token 
+                    for index in range(len(keys)):
+                        x[keys[index]] = x[keys[index]] + ((index + 1) / len(keys))
 
                     # gen lables
+
+                    # square occurances to incerase difference
+                    for k in successor_dict[length][key].keys():
+                        successor_dict[length][key][k] = pow(successor_dict[length][key][k], 2)
+
+                    # sum up occurances
                     total_sucsessors = sum(successor_dict[length][key].values())
+                    # turn occurances in to percentages
                     y:list[float] = [0.0] * self.input_token 
                     for k in successor_dict[length][key].keys():
                         y[int(k)] = successor_dict[length][key][k] / total_sucsessors
-                    
+
+                    # add generated data
                     X.append(x)
                     Y.append(y)
                 except:
                     pass
                     
-        self.neural_network.fit(numpy.array(X), numpy.array(Y), epochs, displayUpdate)
-        self.neural_network.export_weights()
+        self.neural_network.train(numpy.array(X), numpy.array(Y), epochs, displayUpdate)
+        self.neural_network.save()
 
 
-    def get_prediction_probabilities(self, x: list[int]) -> list[float]:
+    def get_prediction_probabilities(self, x: list[int]):
         
-        X = [0] * self.input_token
-        for index in x:
-            X[index] = 1
-        pred = self.neural_network.predict(X)
-        return pred.tolist() # type: ignore
+        X = [0.0] * self.input_token
+        for index in range(len(x)):
+            X[x[index]] = X[x[index]] + ((index + 1) / len(x))
+        pred = self.neural_network.predict(numpy.array(X))
+        return pred
 
 
-    def get_verctor(self, x: list[int], v_layer = 1) -> list[float]:
+    def get_verctor(self, x: list[int], v_layer = 0):
         """
         Converts a list of indices to a one-hot encoded vector and then passes it 
         through the neural network layers.
         
         :param x: List of indices representing active features.
-        :param v_layer: Number of layers to pass trouh (default is 1).
+        :param v_layer: Number of layers to pass trouh (default is 0).
         :return: A list of float values representing the output vector after neural network processing.
         """
-        X = [0] * self.input_token
-        for index in x:
-            X[index] = 1
-        vector = self.neural_network.input_to_vector(X=X, v_layer=v_layer)
-        return vector.tolist() # type: ignore
+        X = [0.0] * self.input_token
+        for index in range(len(x)):
+            X[x[index]] = X[x[index]] + ((index + 1) / len(x))
+        vector = self.neural_network.layer_vector(x=numpy.array(X), layer_index=v_layer)
+        return vector
         

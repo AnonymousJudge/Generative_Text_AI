@@ -1,10 +1,13 @@
 import json
 from collections.abc import Callable
 import numpy
+import jax
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, numpy.ndarray):
+            return obj.tolist()
+        if isinstance(obj, jax.Array):
             return obj.tolist()
         return super().default(obj)
     

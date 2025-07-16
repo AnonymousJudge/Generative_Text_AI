@@ -4,8 +4,6 @@ from structures.Objects import text_data
 
 class PubMedMiner:
     
-    
-    #TODO toolname, email
     pubmed: PubMed
     keyWordSet: set
     usedKeyWordSet: set
@@ -13,7 +11,8 @@ class PubMedMiner:
     def __init__(self, keyword = "test"):
         self.keyWordSet = set()
         self.keyWordSet.add(keyword)
-        self.pubmed = PubMed()
+        #TODO toolname, email from seperate file
+        self.pubmed = PubMed(tool="Generative_Text_AI")
         self.usedKeyWordSet = set()
 
 
